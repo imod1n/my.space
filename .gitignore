@@ -7,3 +7,5 @@ frontend/.env
 *.pyc
 backend/.idea/
 backend/app/__pycache__/
+.claude/settings.local.json
+CLAUDE.md

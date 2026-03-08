@@ -29,6 +29,15 @@ class PaymentCreate(BaseModel):
     note:        Optional[str] = ""
 
 
+class PaymentUpdate(BaseModel):
+    category:    Optional[Category]    = None
+    object_name: Optional[ObjectName]  = None
+    amount:      Optional[float]       = Field(None, gt=0)
+    date:        Optional[str]         = None
+    period:      Optional[str]         = None
+    note:        Optional[str]         = None
+
+
 class PaymentOut(BaseModel):
     id:          str
     category:    str

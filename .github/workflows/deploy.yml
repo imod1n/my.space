@@ -36,10 +36,15 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: 🔖 Generate version.json
+        run: |
+          echo "{\"v\":\"$(git rev-parse --short HEAD)\",\"t\":$(date +%s)}" > frontend/public/version.json
+
       - name: 🏗️ Build
         working-directory: frontend
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_PIN_HASH: ${{ secrets.VITE_PIN_HASH }}
         run: npm run build
 
       - name: 📤 Upload artifact

@@ -34,6 +34,7 @@ export const usePaymentsStore = defineStore('payments', () => {
   const payments      = ref([])
   const stats         = ref(null)   // { total, by_category, by_object }
   const history       = ref([])
+  const historyFull   = ref([])     // all available months for year-over-year chart
   const loading       = ref(false)
   const currentPeriod = ref(todayPeriod())   // YYYY-MM (billing month shown)
 
@@ -83,9 +84,19 @@ export const usePaymentsStore = defineStore('payments', () => {
     history.value = await api.getStatsHistory(6)
   }
 
+  async function fetchHistoryFull() {
+    historyFull.value = await api.getStatsHistory(36)
+  }
+
   async function addPayment(data) {
     // data: { category, object_name, amount, date, period, note }
     await api.createPayment(data)
+    await fetchStats()
+    await fetchPayments()
+  }
+
+  async function updatePayment(id, data) {
+    await api.updatePayment(id, data)
     await fetchStats()
     await fetchPayments()
   }
@@ -98,16 +109,15 @@ export const usePaymentsStore = defineStore('payments', () => {
 
   // ── init ───────────────────────────────────────────────────
   async function init() {
-    // Default view = previous month (most common: paying in current month for previous)
-    currentPeriod.value = prevMonthPeriod()
-    await Promise.all([fetchStats(), fetchPayments(), fetchHistory()])
+    currentPeriod.value = todayPeriod()
+    await Promise.all([fetchStats(), fetchPayments(), fetchHistory(), fetchHistoryFull()])
   }
 
   return {
-    payments, stats, history, loading,
+    payments, stats, history, historyFull, loading,
     currentPeriod, currentPeriodLabel,
-    changeMonth, fetchStats, fetchPayments, fetchHistory,
-    addPayment, deletePayment, init,
+    changeMonth, fetchStats, fetchPayments, fetchHistory, fetchHistoryFull,
+    addPayment, updatePayment, deletePayment, init,
     prevMonthPeriod, todayPeriod,
   }
 })

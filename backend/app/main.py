@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from .database import connect_db, close_db
-from .models import PaymentCreate
+from .models import PaymentCreate, PaymentUpdate
 from . import crud
 
 
@@ -38,6 +38,20 @@ async def add_payment(data: PaymentCreate):
 @app.get("/api/payments")
 async def list_payments(limit: int = 200):
     return await crud.get_payments(limit)
+
+
+@app.put("/api/payments/{payment_id}")
+async def edit_payment(payment_id: str, data: PaymentUpdate):
+    updated = await crud.update_payment(payment_id, data)
+    if not updated:
+        raise HTTPException(404, "Payment not found")
+    return updated
+
+
+@app.delete("/api/payments/all")
+async def remove_all_payments():
+    count = await crud.delete_all_payments()
+    return {"deleted": count}
 
 
 @app.delete("/api/payments/{payment_id}")

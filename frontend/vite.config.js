@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'Коммуналка семьи',
-        short_name: 'Коммуналка',
-        description: 'Семейный учёт коммунальных платежей',
+        name: 'Домашний Счётчик',
+        short_name: 'Домашний Счётчик',
+        description: 'Учёт платежей на содержание',
         start_url: '/pwa-kommunalka/',
         display: 'standalone',
         background_color: '#111111',
@@ -35,6 +35,8 @@ export default defineConfig({
         ]
       },
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {

@@ -19,14 +19,13 @@ async def connect_db():
     try:
         client = AsyncIOMotorClient(MONGO_URL)
         db = client[DB_NAME]
-        # Проверка соединения
         await client.admin.command("ping")
-        logger.info(f"✅ Подключились к MongoDB: {DB_NAME}")
-        # Создаём индексы
+        print(f"✅ MongoDB connected: {DB_NAME}")   # ← временно
         await db.payments.create_index("date")
         await db.payments.create_index("category")
+        await db.payments.create_index("period")    # ← добавьте индекс для period
     except Exception as e:
-        logger.error(f"❌ Ошибка подключения к MongoDB: {e}")
+        print(f"❌ MongoDB error: {e}")              # ← временно
         raise
 
 

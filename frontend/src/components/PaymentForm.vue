@@ -66,7 +66,20 @@
     <div class="field-row">
       <div class="field">
         <label>Дата платежа</label>
-        <input type="date" v-model="form.date" />
+        <div class="date-wrapper">
+          <input type="date" v-model="form.date" />
+          <button
+            v-if="form.date"
+            class="date-clear"
+            title="Очистить дату"
+            type="button"
+            @click="form.date = ''"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
       </div>
       <div class="field">
         <label>За период</label>
@@ -90,7 +103,7 @@
     <!-- Комментарий -->
     <div class="field">
       <label>Комментарий <span class="optional">(необязательно)</span></label>
-      <input type="text" v-model="form.note" placeholder="Показания счётчика, поставщик…" />
+      <input type="text" v-model="form.note" placeholder="Показания счётчика, дополнения…" />
     </div>
 
     <div v-if="error" class="error-msg">{{ error }}</div>
@@ -224,6 +237,34 @@ input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="month"]::-webkit-calendar-picker-indicator {
   filter: invert(0.7);
   cursor: pointer;
+}
+
+/* ── Date clear button ── */
+.date-wrapper {
+  position: relative;
+}
+.date-wrapper input {
+  padding-right: 39px;
+}
+.date-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px; height: 22px;
+  border: none; border-radius: 50%;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0.7;
+  transition: opacity .15s, background .15s, color .15s;
+  flex-shrink: 0;
+}
+.date-clear:hover {
+  opacity: 1;
+  background: rgba(255,69,58,.15);
+  color: var(--accent-red);
 }
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
