@@ -420,13 +420,7 @@ const INCOME_CATS   = ['Зарплата', 'Аванс', 'Проценты', 'К
 const typeMeta = type => TYPE_META[type] ?? { icon: '💰', label: 'Прочее' }
 
 function fmt(n) { return Math.round(Number(n)).toLocaleString('ru-RU') + ' ₽' }
-function fmtDelta(n) {
-  const v = Math.round(Number(n))
-  return (v > 0 ? '+' : '') + v.toLocaleString('ru-RU') + ' ₽'
-}
-function deltaColor(n) {
-  return n > 0 ? '#30d158' : n < 0 ? '#ff453a' : 'var(--text-secondary)'
-}
+
 function fmtDate(str) {
   if (!str) return ''
   const [, m, d] = str.split('-')
@@ -462,7 +456,6 @@ async function navigate(dir) {
 const draggingIdx = ref(null)
 const dragOverIdx = ref(null)
 let touchStartIdx = null
-let touchStartY   = 0
 
 function _applyReorder(fromIdx, toIdx) {
   if (fromIdx === toIdx || fromIdx === null || toIdx === null) return
@@ -483,9 +476,8 @@ function onDrop()        { _applyReorder(draggingIdx.value, dragOverIdx.value) }
 function onDragEnd()     { draggingIdx.value = null; dragOverIdx.value = null }
 
 // Touch (iOS PWA)
-function onTouchStart(e, idx) {
+function onTouchStart(_e, idx) {
   touchStartIdx = idx
-  touchStartY   = e.touches[0].clientY
   dragOverIdx.value = idx
 }
 function onTouchMove(e) {
@@ -949,10 +941,9 @@ onMounted(() => store.init())
 
 /* Type grid */
 .bd-type-grid {
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
-}
-@media (min-width: 400px) {
-  .bd-type-grid { grid-template-columns: repeat(4, 1fr); }
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
 }
 .bd-type-btn {
   display: flex; align-items: center; gap: 10px;

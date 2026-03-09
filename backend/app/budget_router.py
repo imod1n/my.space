@@ -5,7 +5,7 @@ from .budget_models import (
     AuthRequest, AuthResponse,
     AccountCreate, AccountUpdate, AccountOut,
     PeriodCreate, PeriodOut,
-    BalanceSet, BalanceOut,
+    AdvanceAdd, BalanceSet, BalanceOut,
     IncomeCreate, IncomeOut,
     TransferCreate, TransferOut,
 )
@@ -121,6 +121,15 @@ async def set_balance(
 ):
     _check_access(current, user_id)
     return await budget_crud.upsert_balance(user_id, period_id, data)
+
+
+@router.post("/{user_id}/periods/{period_id}/advance", response_model=BalanceOut)
+async def apply_advance(
+    user_id: str, period_id: str, data: AdvanceAdd,
+    current: str = Depends(_require_token),
+):
+    _check_access(current, user_id)
+    return await budget_crud.add_advance(user_id, period_id, data)
 
 
 # ── Income ────────────────────────────────────────────────────────────────────

@@ -73,6 +73,11 @@ class BalanceOut(BaseModel):
     updated_at:      str
 
 
+class AdvanceAdd(BaseModel):
+    account_id: str
+    amount:     float = Field(..., gt=0)
+
+
 # ── Income ────────────────────────────────────────────────────────────────────
 
 class IncomeCreate(BaseModel):

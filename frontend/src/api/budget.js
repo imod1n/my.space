@@ -42,6 +42,7 @@ export const deletePeriod   = (uid, pid)    => http.delete(`/api/budget/${uid}/p
 // ── Balances ──────────────────────────────────────────────────────────────────
 export const getBalances    = (uid, pid)       => http.get(`/api/budget/${uid}/periods/${pid}/balances`).then(d)
 export const setBalance     = (uid, pid, body) => http.post(`/api/budget/${uid}/periods/${pid}/balances`, body).then(d)
+export const addAdvance     = (uid, pid, body) => http.post(`/api/budget/${uid}/periods/${pid}/advance`, body).then(d)
 
 // ── Income ────────────────────────────────────────────────────────────────────
 export const getIncome      = (uid, pid)       => http.get(`/api/budget/${uid}/periods/${pid}/income`).then(d)

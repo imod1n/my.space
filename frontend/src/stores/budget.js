@@ -35,9 +35,7 @@ export const useBudgetStore = defineStore('budget', () => {
 
   const totalStart   = computed(() => accountsWithBalances.value.reduce((s, a) => s + a.balance_start,   0))
   const totalCurrent = computed(() => accountsWithBalances.value.reduce((s, a) => s + a.balance_current, 0))
-  const totalAdvances = computed(() => income.value.filter(i => i.category === 'Аванс').reduce((s, i) => s + i.amount, 0))
-  const totalIncome   = computed(() => income.value.filter(i => i.category !== 'Аванс').reduce((s, i) => s + i.amount, 0))
-  // Аванс физически на счетах (входит в totalCurrent) и не является доходом периода — просто игнорируем его
+  const totalIncome   = computed(() => income.value.reduce((s, i) => s + i.amount, 0))
   const totalExpenses = computed(() => totalStart.value + totalIncome.value - totalCurrent.value)
 
   const activePeriod = computed(() => periods.value.find(p => p.is_active) ?? null)
@@ -187,6 +185,16 @@ export const useBudgetStore = defineStore('budget', () => {
     else balances.value.push(bal)
   }
 
+  async function addAdvance(accountId, amount) {
+    if (!currentPeriod.value) return
+    const bal = await api.addAdvance(userId.value, currentPeriod.value.id, {
+      account_id: accountId, amount,
+    })
+    const idx = balances.value.findIndex(b => b.account_id === accountId)
+    if (idx >= 0) balances.value[idx] = bal
+    else balances.value.push(bal)
+  }
+
   // ── Income actions ─────────────────────────────────────────────────────────
   async function addIncomeEntry(data) {
     if (!currentPeriod.value) return
@@ -225,12 +233,12 @@ export const useBudgetStore = defineStore('budget', () => {
     loading, error,
     // computed
     accountsWithBalances, activePeriod, isViewingActive,
-    totalStart, totalCurrent, totalIncome, totalAdvances, totalExpenses,
+    totalStart, totalCurrent, totalIncome, totalExpenses,
     // actions
     login, logout, init, switchPeriod,
     addAccount, removeAccount, reorderAccounts,
     startNewPeriod, deleteCurrentPeriod,
-    updateBalance,
+    updateBalance, addAdvance,
     addIncomeEntry, removeIncomeEntry,
     addTransferEntry, removeTransferEntry,
   }

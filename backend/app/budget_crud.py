@@ -6,7 +6,7 @@ from bson import ObjectId
 from .database import get_collection
 from .budget_models import (
     AccountCreate, AccountUpdate,
-    BalanceSet, IncomeCreate, TransferCreate,
+    AdvanceAdd, BalanceSet, IncomeCreate, TransferCreate,
 )
 
 SESSION_TTL_HOURS = 24
@@ -296,6 +296,31 @@ async def upsert_balance(user_id: str, period_id: str, data: BalanceSet) -> dict
         }
         result  = await col.insert_one(new_doc)
         doc     = await col.find_one({"_id": result.inserted_id})
+
+    return _fmt_balance(doc)
+
+
+async def add_advance(user_id: str, period_id: str, data: AdvanceAdd) -> dict:
+    col     = get_collection("budget_balances")
+    now_str = datetime.now(timezone.utc).isoformat()
+    query   = {"user_id": user_id, "period_id": period_id, "account_id": data.account_id}
+
+    existing = await col.find_one(query)
+    if existing:
+        await col.update_one({"_id": existing["_id"]}, {
+            "$inc": {"balance_start": data.amount},
+            "$set": {"updated_at": now_str},
+        })
+        doc = await col.find_one({"_id": existing["_id"]})
+    else:
+        new_doc = {
+            **query,
+            "balance_start":   data.amount,
+            "balance_current": 0.0,
+            "updated_at":      now_str,
+        }
+        result = await col.insert_one(new_doc)
+        doc    = await col.find_one({"_id": result.inserted_id})
 
     return _fmt_balance(doc)
 

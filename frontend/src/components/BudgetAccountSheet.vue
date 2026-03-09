@@ -61,6 +61,28 @@
           {{ saving ? 'Сохраняю...' : 'Сохранить' }}
         </button>
 
+        <!-- Advance section -->
+        <div class="bas-divider"></div>
+
+        <div class="bas-field">
+          <label class="bas-label">Аванс</label>
+          <div class="bas-input-wrap">
+            <input
+              v-model="advanceAmount"
+              type="number"
+              inputmode="decimal"
+              class="bas-input"
+              placeholder="0"
+              step="0.01"
+            />
+            <span class="bas-currency">₽</span>
+          </div>
+        </div>
+
+        <button class="bas-advance-btn" :disabled="savingAdvance || !advanceAmount" @click="applyAdvance">
+          {{ savingAdvance ? 'Добавляю...' : '+ К началу периода' }}
+        </button>
+
       </div>
     </div>
   </Teleport>
@@ -88,10 +110,12 @@ const TYPE_META = {
 }
 
 const typeMeta    = computed(() => TYPE_META[props.account.type] ?? { icon: '💰' })
-const localStart  = ref(props.account.balance_start)
+const localStart   = ref(props.account.balance_start)
 const localCurrent = ref(props.account.balance_current)
-const saving      = ref(false)
+const saving       = ref(false)
 const currentInput = ref(null)
+const advanceAmount  = ref('')
+const savingAdvance  = ref(false)
 
 const delta = computed(() => Number(localCurrent.value) - Number(localStart.value))
 const deltaColor = computed(() => delta.value > 0 ? '#30d158' : delta.value < 0 ? '#ff453a' : '#8e8e93')
@@ -114,6 +138,19 @@ async function save() {
     emit('close')
   } finally {
     saving.value = false
+  }
+}
+
+async function applyAdvance() {
+  const amount = Number(advanceAmount.value)
+  if (!amount || amount <= 0) return
+  savingAdvance.value = true
+  try {
+    await store.addAdvance(props.account.id, amount)
+    emit('saved')
+    emit('close')
+  } finally {
+    savingAdvance.value = false
   }
 }
 
@@ -220,4 +257,24 @@ onMounted(async () => {
 }
 .bas-save:active { transform: scale(0.98); }
 .bas-save:disabled { opacity: 0.5; cursor: default; }
+
+.bas-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.bas-advance-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--bg-input);
+  color: var(--accent-blue);
+  font-size: 15px; font-weight: 600;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+}
+.bas-advance-btn:active { transform: scale(0.98); }
+.bas-advance-btn:disabled { opacity: 0.4; cursor: default; }
 </style>
