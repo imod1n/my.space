@@ -35,7 +35,7 @@ export const useBudgetStore = defineStore('budget', () => {
 
   const totalStart   = computed(() => accountsWithBalances.value.reduce((s, a) => s + a.balance_start,   0))
   const totalCurrent = computed(() => accountsWithBalances.value.reduce((s, a) => s + a.balance_current, 0))
-  const totalIncome   = computed(() => income.value.reduce((s, i) => s + i.amount, 0))
+  const totalIncome   = computed(() => income.value.filter(i => i.category !== 'Аванс').reduce((s, i) => s + i.amount, 0))
   const totalExpenses = computed(() => totalStart.value + totalIncome.value - totalCurrent.value)
 
   const activePeriod = computed(() => periods.value.find(p => p.is_active) ?? null)
