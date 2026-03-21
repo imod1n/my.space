@@ -9,12 +9,28 @@
             <span class="bas-type-icon">{{ typeMeta.icon }}</span>
             <span class="bas-name">{{ account.name }}</span>
           </div>
-          <button class="bas-close" @click="$emit('close')">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
+          <div class="bas-header-actions">
+            <button class="bas-advance-icon" @click="showAdvance = true" title="Аванс">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="16"/>
+                <line x1="8" y1="12" x2="16" y2="12"/>
+              </svg>
+            </button>
+            <button class="bas-close" @click="$emit('close')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
         </div>
+
+        <BudgetAdvanceSheet
+          v-if="showAdvance"
+          :account="account"
+          @close="showAdvance = false"
+          @saved="onAdvanceSaved"
+        />
 
         <!-- Inputs -->
         <div class="bas-fields">
@@ -61,36 +77,15 @@
           {{ saving ? 'Сохраняю...' : 'Сохранить' }}
         </button>
 
-        <!-- Advance section -->
-        <div class="bas-divider"></div>
-
-        <div class="bas-field">
-          <label class="bas-label">Аванс</label>
-          <div class="bas-input-wrap">
-            <input
-              v-model="advanceAmount"
-              type="number"
-              inputmode="decimal"
-              class="bas-input"
-              placeholder="0"
-              step="0.01"
-            />
-            <span class="bas-currency">₽</span>
-          </div>
-        </div>
-
-        <button class="bas-advance-btn" :disabled="savingAdvance || !advanceAmount" @click="applyAdvance">
-          {{ savingAdvance ? 'Добавляю...' : '+ К началу периода' }}
-        </button>
-
       </div>
     </div>
   </Teleport>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useBudgetStore } from '../stores/budget'
+import BudgetAdvanceSheet from './BudgetAdvanceSheet.vue'
 
 const props = defineProps({
   account: { type: Object, required: true },
@@ -114,8 +109,7 @@ const localStart   = ref(props.account.balance_start)
 const localCurrent = ref(props.account.balance_current)
 const saving       = ref(false)
 const currentInput = ref(null)
-const advanceAmount  = ref('')
-const savingAdvance  = ref(false)
+const showAdvance  = ref(false)
 
 const delta = computed(() => Number(localCurrent.value) - Number(localStart.value))
 const deltaColor = computed(() => delta.value > 0 ? '#30d158' : delta.value < 0 ? '#ff453a' : '#8e8e93')
@@ -141,22 +135,27 @@ async function save() {
   }
 }
 
-async function applyAdvance() {
-  const amount = Number(advanceAmount.value)
-  if (!amount || amount <= 0) return
-  savingAdvance.value = true
-  try {
-    await store.addAdvance(props.account.id, amount)
-    emit('saved')
-    emit('close')
-  } finally {
-    savingAdvance.value = false
-  }
+function onAdvanceSaved() {
+  emit('saved')
+  emit('close')
 }
+
+let savedScrollY = 0
 
 onMounted(async () => {
   await nextTick()
+  savedScrollY = window.scrollY
+  document.body.style.position = 'fixed'
+  document.body.style.top = `-${savedScrollY}px`
+  document.body.style.width = '100%'
   currentInput.value?.focus()
+})
+
+onUnmounted(() => {
+  document.body.style.position = ''
+  document.body.style.top = ''
+  document.body.style.width = ''
+  window.scrollTo(0, savedScrollY)
 })
 </script>
 
@@ -192,6 +191,19 @@ onMounted(async () => {
 }
 .bas-type-icon { font-size: 22px; }
 .bas-name { font-size: 17px; font-weight: 600; color: var(--text-primary); }
+
+.bas-header-actions {
+  display: flex; align-items: center; gap: 8px;
+}
+
+.bas-advance-icon {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--bg-input); border: none;
+  color: var(--accent-blue); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.bas-advance-icon:hover { background: var(--border); }
 
 .bas-close {
   width: 30px; height: 30px; border-radius: 50%;
@@ -258,23 +270,4 @@ onMounted(async () => {
 .bas-save:active { transform: scale(0.98); }
 .bas-save:disabled { opacity: 0.5; cursor: default; }
 
-.bas-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 4px 0;
-}
-
-.bas-advance-btn {
-  width: 100%;
-  padding: 14px;
-  border-radius: 14px;
-  background: var(--bg-input);
-  color: var(--accent-blue);
-  font-size: 15px; font-weight: 600;
-  border: 1px solid var(--border);
-  cursor: pointer;
-  transition: opacity .15s, transform .1s;
-}
-.bas-advance-btn:active { transform: scale(0.98); }
-.bas-advance-btn:disabled { opacity: 0.4; cursor: default; }
 </style>

@@ -139,14 +139,12 @@
             @dragleave="onDragLeave"
             @drop.prevent="onDrop"
             @dragend="onDragEnd"
-            @touchstart.passive="onTouchStart($event, idx)"
-            @touchmove.prevent="onTouchMove"
-            @touchend="onTouchEnd"
           >
             <span
               v-if="store.isViewingActive && store.accounts.length >= 2"
               class="bd-drag-handle"
               @click.stop
+              @touchstart.passive="onTouchStart($event, idx)"
             >⠿</span>
             <div class="bd-acc-content">
               <div class="bd-acc-main">
@@ -156,7 +154,24 @@
               <div class="bd-acc-balances">
                 <span class="bd-bal-start">{{ fmt(acc.balance_start) }}</span>
                 <span class="bd-bal-arrow">→</span>
-                <span class="bd-bal-current">{{ fmt(acc.balance_current) }}</span>
+                <input
+                  v-if="store.isViewingActive && inlineEditId === acc.id"
+                  class="bd-inline-input"
+                  type="number"
+                  inputmode="decimal"
+                  v-model="inlineEditVal"
+                  @click.stop
+                  @keydown.enter.prevent="saveInlineEdit(acc)"
+                  @keydown.escape.prevent="cancelInlineEdit"
+                  @blur="saveInlineEdit(acc)"
+                  :ref="el => { if (el) el.focus() }"
+                />
+                <span
+                  v-else
+                  class="bd-bal-current"
+                  :class="{ 'bd-bal-editable': store.isViewingActive }"
+                  @click.stop="startInlineEdit(acc)"
+                >{{ fmt(acc.balance_current) }}</span>
               </div>
             </div>
             <button
@@ -522,21 +537,26 @@ function onDragLeave()   { dragOverIdx.value = null }
 function onDrop()        { _applyReorder(draggingIdx.value, dragOverIdx.value) }
 function onDragEnd()     { draggingIdx.value = null; dragOverIdx.value = null }
 
-// Touch (iOS PWA)
+// Touch (iOS PWA) — инициируется только с bd-drag-handle
 function onTouchStart(_e, idx) {
   touchStartIdx = idx
+  draggingIdx.value = idx
   dragOverIdx.value = idx
+  document.addEventListener('touchmove', _onTouchMoveGlobal, { passive: false })
+  document.addEventListener('touchend',  _onTouchEndGlobal,  { once: true })
 }
-function onTouchMove(e) {
-  const y   = e.touches[0].clientY
-  const els = document.elementsFromPoint(e.touches[0].clientX, y)
+function _onTouchMoveGlobal(e) {
+  e.preventDefault()
+  const t = e.touches[0]
+  const els = document.elementsFromPoint(t.clientX, t.clientY)
   const card = els.find(el => el.closest?.('[data-acc-idx]'))
   if (card) {
     const idx = parseInt(card.closest('[data-acc-idx]').dataset.accIdx)
     if (!isNaN(idx)) dragOverIdx.value = idx
   }
 }
-function onTouchEnd() {
+function _onTouchEndGlobal() {
+  document.removeEventListener('touchmove', _onTouchMoveGlobal)
   _applyReorder(touchStartIdx, dragOverIdx.value)
   touchStartIdx = null
   draggingIdx.value = null
@@ -547,6 +567,40 @@ function onTouchEnd() {
 
 const selectedAccount = ref(null)
 function openBalanceSheet(acc) { selectedAccount.value = acc }
+
+// ── Inline balance edit ───────────────────────────────────────────────────────
+
+const inlineEditId  = ref(null)
+const inlineEditVal = ref('')
+
+// maximum-scale=1 ДО фокуса предотвращает iOS-зум при тапе на input
+const _VIEWPORT_LOCKED   = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover'
+const _VIEWPORT_ORIGINAL = 'width=device-width, initial-scale=1.0, viewport-fit=cover'
+const _viewportMeta = document.querySelector('meta[name=viewport]')
+
+function startInlineEdit(acc) {
+  if (!store.isViewingActive) return
+  _viewportMeta?.setAttribute('content', _VIEWPORT_LOCKED)
+  inlineEditId.value  = acc.id
+  inlineEditVal.value = acc.balance_current
+}
+
+function _restoreViewport() {
+  _viewportMeta?.setAttribute('content', _VIEWPORT_ORIGINAL)
+}
+
+async function saveInlineEdit(acc) {
+  if (inlineEditId.value !== acc.id) return
+  const val = Number(inlineEditVal.value) || 0
+  inlineEditId.value = null
+  _restoreViewport()
+  await store.updateBalance(acc.id, acc.balance_start, val)
+}
+
+function cancelInlineEdit() {
+  inlineEditId.value = null
+  _restoreViewport()
+}
 
 // ── Transfer sheet ────────────────────────────────────────────────────────────
 
@@ -907,6 +961,31 @@ onMounted(() => store.init())
 .bd-bal-start   { color: var(--text-secondary); }
 .bd-bal-arrow   { color: var(--border); }
 .bd-bal-current { color: var(--text-primary); font-weight: 600; }
+.bd-bal-editable {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+  transition: color .12s;
+}
+.bd-bal-editable:hover { color: var(--accent-green); }
+.bd-inline-input {
+  background: var(--bg-input);
+  border: 1px solid var(--accent-green);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 13px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-family: inherit;
+  text-align: right;
+  padding: 2px 8px;
+  width: 110px;
+  outline: none;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.bd-inline-input::-webkit-inner-spin-button,
+.bd-inline-input::-webkit-outer-spin-button { -webkit-appearance: none; appearance: none; }
 .bd-bal-delta   { font-weight: 700; }
 
 /* Income / transfer rows */
@@ -1022,9 +1101,10 @@ onMounted(() => store.init())
   font-family: inherit; padding: 14px 0;
   font-variant-numeric: tabular-nums;
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 .bd-num-input::-webkit-inner-spin-button,
-.bd-num-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.bd-num-input::-webkit-outer-spin-button { -webkit-appearance: none; appearance: none; }
 .bd-currency { font-size: 18px; font-weight: 600; color: var(--text-secondary); }
 
 /* Type grid */

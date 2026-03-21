@@ -36,6 +36,7 @@ app.add_middleware(
         "https://imod1n.github.io",
         "http://localhost:5173",
         "http://localhost:4173",
+        *[o.strip() for o in os.getenv("CORS_LOCAL_ORIGINS", "").split(",") if o.strip()],
     ],
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
