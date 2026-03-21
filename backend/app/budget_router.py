@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, Header, Depends
+from fastapi import APIRouter, HTTPException, Header, Depends, Request
 
 from . import budget_crud
+from .limiter import check_auth_rate_limit
 from .budget_models import (
     AuthRequest, AuthResponse,
     AccountCreate, AccountUpdate, AccountOut,
@@ -33,7 +34,8 @@ def _check_access(token_user: str, path_user: str):
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 @router.post("/auth", response_model=AuthResponse)
-async def auth(data: AuthRequest):
+async def auth(request: Request, data: AuthRequest):
+    check_auth_rate_limit(request)
     result = await budget_crud.authenticate(data.user_id, data.pin_hash)
     if not result:
         raise HTTPException(401, "Invalid credentials")
@@ -60,7 +62,7 @@ async def edit_account(
     current: str = Depends(_require_token),
 ):
     _check_access(current, user_id)
-    result = await budget_crud.update_account(account_id, data)
+    result = await budget_crud.update_account(account_id, current, data)
     if not result:
         raise HTTPException(404, "Account not found")
     return result
@@ -69,7 +71,7 @@ async def edit_account(
 @router.delete("/{user_id}/accounts/{account_id}")
 async def remove_account(user_id: str, account_id: str, current: str = Depends(_require_token)):
     _check_access(current, user_id)
-    if not await budget_crud.delete_account(account_id):
+    if not await budget_crud.delete_account(account_id, current):
         raise HTTPException(404, "Account not found")
     return {"deleted": True}
 
@@ -152,7 +154,7 @@ async def add_income(
 @router.delete("/{user_id}/income/{income_id}")
 async def remove_income(user_id: str, income_id: str, current: str = Depends(_require_token)):
     _check_access(current, user_id)
-    if not await budget_crud.delete_income(income_id):
+    if not await budget_crud.delete_income(income_id, current):
         raise HTTPException(404, "Income not found")
     return {"deleted": True}
 
@@ -177,6 +179,6 @@ async def add_transfer(
 @router.delete("/{user_id}/transfers/{transfer_id}")
 async def remove_transfer(user_id: str, transfer_id: str, current: str = Depends(_require_token)):
     _check_access(current, user_id)
-    if not await budget_crud.delete_transfer(transfer_id):
+    if not await budget_crud.delete_transfer(transfer_id, current):
         raise HTTPException(404, "Transfer not found")
     return {"deleted": True}

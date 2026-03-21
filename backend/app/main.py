@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Header
+from fastapi import FastAPI, HTTPException, Depends, Header, Query
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
@@ -52,7 +52,7 @@ async def add_payment(data: PaymentCreate):
 
 
 @app.get("/api/payments")
-async def list_payments(limit: int = 200):
+async def list_payments(limit: int = Query(default=200, ge=1, le=1000)):
     return await crud.get_payments(limit)
 
 

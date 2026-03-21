@@ -124,19 +124,19 @@ async def create_account(user_id: str, data: AccountCreate) -> dict:
     return _fmt_account(doc)
 
 
-async def update_account(account_id: str, data: AccountUpdate) -> dict | None:
+async def update_account(account_id: str, user_id: str, data: AccountUpdate) -> dict | None:
     col = get_collection("budget_accounts")
     update = {k: v for k, v in data.model_dump(exclude_none=True).items()}
     if not update:
         return None
-    await col.update_one({"_id": ObjectId(account_id)}, {"$set": update})
-    doc = await col.find_one({"_id": ObjectId(account_id)})
+    await col.update_one({"_id": ObjectId(account_id), "user_id": user_id}, {"$set": update})
+    doc = await col.find_one({"_id": ObjectId(account_id), "user_id": user_id})
     return _fmt_account(doc) if doc else None
 
 
-async def delete_account(account_id: str) -> bool:
+async def delete_account(account_id: str, user_id: str) -> bool:
     result = await get_collection("budget_accounts").update_one(
-        {"_id": ObjectId(account_id)},
+        {"_id": ObjectId(account_id), "user_id": user_id},
         {"$set": {"is_active": False}},
     )
     return result.modified_count > 0
@@ -361,9 +361,9 @@ async def create_income(user_id: str, period_id: str, data: IncomeCreate) -> dic
     return _fmt_income(doc)
 
 
-async def delete_income(income_id: str) -> bool:
+async def delete_income(income_id: str, user_id: str) -> bool:
     result = await get_collection("budget_income").delete_one(
-        {"_id": ObjectId(income_id)}
+        {"_id": ObjectId(income_id), "user_id": user_id}
     )
     return result.deleted_count > 0
 
@@ -421,11 +421,11 @@ async def create_transfer(user_id: str, period_id: str, data: TransferCreate) ->
     return _fmt_transfer(doc)
 
 
-async def delete_transfer(transfer_id: str) -> bool:
+async def delete_transfer(transfer_id: str, user_id: str) -> bool:
     transfers = get_collection("budget_transfers")
     balances  = get_collection("budget_balances")
 
-    transfer = await transfers.find_one({"_id": ObjectId(transfer_id)})
+    transfer = await transfers.find_one({"_id": ObjectId(transfer_id), "user_id": user_id})
     if not transfer:
         return False
 

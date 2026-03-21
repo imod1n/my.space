@@ -61,6 +61,14 @@ export const useBudgetStore = defineStore('budget', () => {
     accounts.value = []; periods.value = []; currentPeriod.value = null
     balances.value = []; income.value = []; transfers.value = []
     error.value = ''
+    // Очищаем кэш SW для данных бюджета
+    if ('caches' in window) {
+      caches.open('api-cache').then(cache => {
+        cache.keys().then(keys => {
+          keys.forEach(req => { if (req.url.includes('/api/budget/')) cache.delete(req) })
+        })
+      })
+    }
   }
 
   // ── Data loading ───────────────────────────────────────────────────────────

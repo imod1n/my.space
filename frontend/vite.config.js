@@ -5,7 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const apiUrl = env.VITE_API_URL || 'http://localhost:8000'
-  const apiUrlPattern = new RegExp('^' + apiUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/api/')
+  const apiUrlPattern = new RegExp('^' + apiUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/api/(?!budget/)')
 
   return {
   base: '/my.space/',  // GitHub Pages repo name

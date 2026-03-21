@@ -9,3 +9,5 @@ backend/.idea/
 backend/app/__pycache__/
 .claude/settings.local.json
 CLAUDE.md
+.claude/agents/engineering-security-engineer.md
+.claude/analize/concurrent-wondering-lighthouse.md
