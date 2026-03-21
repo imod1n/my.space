@@ -31,6 +31,8 @@ app.include_router(budget_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://space-modin.ru",
+        "https://www.space-modin.ru",
         "https://imod1n.github.io",
         "http://localhost:5173",
         "http://localhost:4173",
