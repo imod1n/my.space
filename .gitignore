@@ -11,3 +11,5 @@ backend/app/__pycache__/
 CLAUDE.md
 .claude/agents/engineering-security-engineer.md
 .claude/analize/concurrent-wondering-lighthouse.md
+.claude/agents/engineering-frontend-developer.md
+.claude/agents/engineering-mobile-app-builder.md

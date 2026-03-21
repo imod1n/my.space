@@ -2,8 +2,17 @@ import os
 import uuid
 from datetime import datetime, timezone, timedelta
 from bson import ObjectId
+from bson.errors import InvalidId
+from fastapi import HTTPException
 
 from .database import get_collection
+
+
+def _oid(value: str) -> ObjectId:
+    try:
+        return ObjectId(value)
+    except (InvalidId, Exception):
+        raise HTTPException(status_code=400, detail="Invalid ID")
 from .budget_models import (
     AccountCreate, AccountUpdate,
     AdvanceAdd, BalanceSet, IncomeCreate, TransferCreate,
@@ -129,14 +138,14 @@ async def update_account(account_id: str, user_id: str, data: AccountUpdate) -> 
     update = {k: v for k, v in data.model_dump(exclude_none=True).items()}
     if not update:
         return None
-    await col.update_one({"_id": ObjectId(account_id), "user_id": user_id}, {"$set": update})
-    doc = await col.find_one({"_id": ObjectId(account_id), "user_id": user_id})
+    await col.update_one({"_id": _oid(account_id), "user_id": user_id}, {"$set": update})
+    doc = await col.find_one({"_id": _oid(account_id), "user_id": user_id})
     return _fmt_account(doc) if doc else None
 
 
 async def delete_account(account_id: str, user_id: str) -> bool:
     result = await get_collection("budget_accounts").update_one(
-        {"_id": ObjectId(account_id), "user_id": user_id},
+        {"_id": _oid(account_id), "user_id": user_id},
         {"$set": {"is_active": False}},
     )
     return result.modified_count > 0
@@ -228,7 +237,7 @@ async def delete_period(user_id: str, period_id: str) -> dict | None:
     income    = get_collection("budget_income")
     transfers = get_collection("budget_transfers")
 
-    period = await periods.find_one({"_id": ObjectId(period_id), "user_id": user_id})
+    period = await periods.find_one({"_id": _oid(period_id), "user_id": user_id})
     if not period:
         return None
 
@@ -236,7 +245,7 @@ async def delete_period(user_id: str, period_id: str) -> dict | None:
     await balances.delete_many({"user_id": user_id, "period_id": period_id})
     await income.delete_many({"user_id": user_id, "period_id": period_id})
     await transfers.delete_many({"user_id": user_id, "period_id": period_id})
-    await periods.delete_one({"_id": ObjectId(period_id)})
+    await periods.delete_one({"_id": _oid(period_id)})
 
     # Restore previous period as active
     prev = await periods.find_one(
@@ -363,7 +372,7 @@ async def create_income(user_id: str, period_id: str, data: IncomeCreate) -> dic
 
 async def delete_income(income_id: str, user_id: str) -> bool:
     result = await get_collection("budget_income").delete_one(
-        {"_id": ObjectId(income_id), "user_id": user_id}
+        {"_id": _oid(income_id), "user_id": user_id}
     )
     return result.deleted_count > 0
 
@@ -395,6 +404,18 @@ async def create_transfer(user_id: str, period_id: str, data: TransferCreate) ->
     now       = datetime.now(timezone.utc)
     now_str   = now.isoformat()
 
+    # Adjust balance_current for both accounts first.
+    # If either update fails, no transfer record is created (safer than the reverse).
+    bal_query_base = {"user_id": user_id, "period_id": period_id}
+    await balances.update_one(
+        {**bal_query_base, "account_id": data.from_account_id},
+        {"$inc": {"balance_current": -data.amount}, "$set": {"updated_at": now_str}},
+    )
+    await balances.update_one(
+        {**bal_query_base, "account_id": data.to_account_id},
+        {"$inc": {"balance_current": data.amount}, "$set": {"updated_at": now_str}},
+    )
+
     doc = {
         "user_id":         user_id,
         "period_id":       period_id,
@@ -407,17 +428,6 @@ async def create_transfer(user_id: str, period_id: str, data: TransferCreate) ->
     result = await transfers.insert_one(doc)
     doc["_id"] = result.inserted_id
 
-    # Adjust balance_current for both accounts
-    bal_query_base = {"user_id": user_id, "period_id": period_id}
-    await balances.update_one(
-        {**bal_query_base, "account_id": data.from_account_id},
-        {"$inc": {"balance_current": -data.amount}, "$set": {"updated_at": now_str}},
-    )
-    await balances.update_one(
-        {**bal_query_base, "account_id": data.to_account_id},
-        {"$inc": {"balance_current": data.amount}, "$set": {"updated_at": now_str}},
-    )
-
     return _fmt_transfer(doc)
 
 
@@ -425,7 +435,7 @@ async def delete_transfer(transfer_id: str, user_id: str) -> bool:
     transfers = get_collection("budget_transfers")
     balances  = get_collection("budget_balances")
 
-    transfer = await transfers.find_one({"_id": ObjectId(transfer_id), "user_id": user_id})
+    transfer = await transfers.find_one({"_id": _oid(transfer_id), "user_id": user_id})
     if not transfer:
         return False
 
@@ -445,5 +455,5 @@ async def delete_transfer(transfer_id: str, user_id: str) -> bool:
         {"$inc": {"balance_current": -transfer["amount"]}, "$set": {"updated_at": now_str}},
     )
 
-    result = await transfers.delete_one({"_id": ObjectId(transfer_id)})
+    result = await transfers.delete_one({"_id": _oid(transfer_id)})
     return result.deleted_count > 0

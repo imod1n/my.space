@@ -265,7 +265,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { usePaymentsStore } from '../stores/payments'
 import PaymentForm from '../components/PaymentForm.vue'
 import StatsTable from '../components/StatsTable.vue'
@@ -284,7 +284,7 @@ const activeTab = ref('overview')
 const budgetLocked = ref(!budgetStore.isAuthenticated)
 watch(() => budgetStore.isAuthenticated, (val) => { if (!val) budgetLocked.value = true })
 let budgetHiddenAt = 0
-document.addEventListener('visibilitychange', () => {
+function onBudgetVisibilityChange() {
   if (document.hidden) {
     budgetHiddenAt = Date.now()
   } else if (activeTab.value === 'budget' && budgetStore.isAuthenticated) {
@@ -292,6 +292,10 @@ document.addEventListener('visibilitychange', () => {
       budgetLocked.value = true
     }
   }
+}
+document.addEventListener('visibilitychange', onBudgetVisibilityChange)
+onUnmounted(() => {
+  document.removeEventListener('visibilitychange', onBudgetVisibilityChange)
 })
 
 const tabs = [

@@ -1,5 +1,14 @@
 from bson import ObjectId
+from bson.errors import InvalidId
+from fastapi import HTTPException
 from .database import get_collection
+
+
+def _oid(value: str) -> ObjectId:
+    try:
+        return ObjectId(value)
+    except (InvalidId, Exception):
+        raise HTTPException(status_code=400, detail="Invalid ID")
 
 
 def _fmt(doc) -> dict:
@@ -26,7 +35,7 @@ async def get_payments(limit: int = 200) -> list:
 
 async def delete_payment(payment_id: str) -> bool:
     col = get_collection("payments")
-    result = await col.delete_one({"_id": ObjectId(payment_id)})
+    result = await col.delete_one({"_id": _oid(payment_id)})
     return result.deleted_count == 1
 
 
@@ -36,7 +45,7 @@ async def update_payment(payment_id: str, data) -> dict | None:
     if not update_data:
         return None
     result = await col.find_one_and_update(
-        {"_id": ObjectId(payment_id)},
+        {"_id": _oid(payment_id)},
         {"$set": update_data},
         return_document=True,
     )
