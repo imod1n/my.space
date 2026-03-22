@@ -60,8 +60,8 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: 🔄 Trigger Render deploy
+      - name: 🔄 Trigger Koyeb deploy
         env:
-          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
-        if: ${{ env.RENDER_DEPLOY_HOOK != '' }}
-        run: curl -s "$RENDER_DEPLOY_HOOK"
+          KOYEB_DEPLOY_HOOK: ${{ secrets.KOYEB_DEPLOY_HOOK }}
+        if: ${{ env.KOYEB_DEPLOY_HOOK != '' }}
+        run: curl -s "$KOYEB_DEPLOY_HOOK"

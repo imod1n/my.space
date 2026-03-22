@@ -1,18 +1,24 @@
-name: Keep Render Alive
+name: Health Check
 
 on:
   schedule:
     - cron: '*/10 * * * *'   # каждые 10 минут
   workflow_dispatch:          # ручной запуск при необходимости
 
+# Примечание: Koyeb free tier не засыпает, в отличие от Render.
+# Этот workflow оставлен для мониторинга доступности API.
+
 jobs:
   ping:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: Ping Render health endpoint
+      - name: Ping API health endpoint
+        env:
+          API_HEALTH_URL: ${{ secrets.API_HEALTH_URL }}
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://kommunalka-api.onrender.com/health)
+          URL="${API_HEALTH_URL:-https://kommunalka-api.onrender.com/health}"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$URL")
           echo "HTTP status: $STATUS"
           if [ "$STATUS" -ne 200 ]; then
             echo "Warning: health check returned $STATUS"

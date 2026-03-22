@@ -1,0 +1,23 @@
+# Koyeb deployment configuration reference
+# Настройка производится через Koyeb dashboard (koyeb.com)
+# Этот файл — справочник параметров, не автоматический конфиг
+
+# Service: kommunalka-api
+# Provider: GitHub (imod1n/my.space, branch: master)
+# Region: Frankfurt (eu-west-1)
+# Builder: Buildpack
+# Build command: pip install -r backend/requirements.txt
+# Run command:   uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+# Health check:  /health
+# Instance type: free (eco)
+
+# Environment variables (задать в Koyeb dashboard → Service → Settings → Environment):
+#
+#   MONGO_URL          — mongodb+srv://kommunalka:<pass>@main1.brpynju.mongodb.net/...
+#   DB_NAME            — kommunalka
+#   API_KEY            — секретный ключ API (должен совпадать с VITE_API_KEY в GitHub Secrets)
+#   BUDGET_USER1_NAME  — имя первого пользователя (например: Иван)
+#   BUDGET_USER1_HASH  — SHA-256 хеш PIN первого пользователя
+#   BUDGET_USER2_NAME  — имя второго пользователя (например: Мария)
+#   BUDGET_USER2_HASH  — SHA-256 хеш PIN второго пользователя
+#   # BUDGET_USER3_NAME / BUDGET_USER3_HASH — добавить при необходимости
