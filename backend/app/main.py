@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Header, Query
+from fastapi import FastAPI, HTTPException, Depends, Header, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
@@ -12,7 +12,9 @@ from .budget_router import router as budget_router
 _API_KEY = os.getenv("API_KEY")
 
 
-async def verify_api_key(x_api_key: str | None = Header(default=None)):
+async def verify_api_key(request: Request, x_api_key: str | None = Header(default=None)):
+    if request.url.path == "/health":
+        return
     if _API_KEY and x_api_key != _API_KEY:
         raise HTTPException(status_code=403, detail="Invalid API key")
 
